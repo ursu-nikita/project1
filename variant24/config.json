@@ -1,0 +1,4 @@
+{
+  "vfs": "vfs/sample.json",
+  "script": "scripts/demo.txt"
+}

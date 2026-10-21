@@ -1,0 +1,13 @@
+# Successful demonstration of all commands
+vfs-info
+whoami
+ls
+cd home
+ls
+cd student/docs
+ls
+tac data.txt
+chmod 600 data.txt
+clear
+cd /
+ls

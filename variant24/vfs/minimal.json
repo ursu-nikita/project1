@@ -1,0 +1,8 @@
+{
+  "name": "minimal",
+  "root": {
+    "type": "dir",
+    "mode": "755",
+    "children": {}
+  }
+}
