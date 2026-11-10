@@ -99,9 +99,37 @@ class Emulator:
         if command == 'vfs-info':
             self.require(params, 0, 'vfs-info')
             return f"Name: {self.document['name']}\nSHA-256: {self.checksum}"
-        if command in ('ls', 'cd'):
-            self.require_range(params, 0, 1, f'{command} [path]')
-            return f'{command}: {params!r}'
+        if command == 'whoami':
+            self.require(params, 0, 'whoami')
+            return getpass.getuser()
+        if command == 'clear':
+            self.require(params, 0, 'clear')
+            return '\033[2J\033[H'
+        if command == 'ls':
+            self.require_range(params, 0, 1, 'ls [path]')
+            target = self.node(params[0] if params else '.')
+            if target['type'] == 'dir':
+                return '\n'.join(sorted(target['children']))
+            return PurePosixPath(params[0]).name
+        if command == 'cd':
+            self.require_range(params, 0, 1, 'cd [path]')
+            path = params[0] if params else '/'
+            target = self.node(path)
+            if target['type'] != 'dir':
+                raise ShellError(f'Not a directory: {path}')
+            self.cwd = normalize(path, self.cwd)
+            return ''
+        if command == 'tac':
+            self.require(params, 1, 'tac <file>')
+            target = self.node(params[0])
+            if target['type'] != 'file':
+                raise ShellError('tac expects a file')
+            data = base64.b64decode(target['content_b64'])
+            try:
+                content = data.decode('utf-8')
+            except UnicodeDecodeError as error:
+                raise ShellError('tac only supports UTF-8 text') from error
+            return '\n'.join(reversed(content.splitlines()))
         raise ShellError(f'Unknown command: {command}')
 
     @staticmethod

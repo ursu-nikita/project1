@@ -1,0 +1,10 @@
+whoami
+clear
+ls
+ls /readme.txt
+cd /home/student/docs
+ls .
+tac data.txt
+cd ..
+cd
+exit
