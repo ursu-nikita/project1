@@ -57,18 +57,65 @@ class Emulator:
         return f'{getpass.getuser()}@{socket.gethostname()}:{self.cwd}$ '
 
 
-def main():
-    shell = Emulator()
-    while shell.running:
-        try:
-            line = input(shell.prompt())
-            output = shell.execute(line)
-            if output:
-                print(output)
-        except EOFError:
-            break
-        except ShellError as error:
-            print(f'Error: {error}')
-    return 0
+def run_script(emulator, path):
+    """Echo commands and stop on the first script error."""
+    with open(path, encoding='utf-8') as stream:
+        for number, raw in enumerate(stream, start=1):
+            line = raw.strip()
+            if not line or line.startswith('#'):
+                continue
+            print(emulator.prompt() + line)
+            try:
+                result = emulator.execute(line)
+            except ShellError as error:
+                print(f'Error in script line {number}: {error}', file=sys.stderr)
+                return False
+            if result:
+                print(result)
+            if not emulator.running:
+                break
+    return True
+
+
+def main(argv=None):
+    """Read CLI/JSON configuration, run script, then enter REPL."""
+    parser = argparse.ArgumentParser(description='Variant 24 shell emulator')
+    parser.add_argument('--vfs', help='path to VFS JSON')
+    parser.add_argument('--script', help='path to startup script')
+    parser.add_argument('--config', help='path to configuration JSON')
+    args = parser.parse_args(argv)
+    try:
+        config = {}
+        if args.config:
+            with open(args.config, encoding='utf-8') as stream:
+                config = json.load(stream)
+            if not isinstance(config, dict):
+                raise ValueError('config must be a JSON object')
+        vfs_path = args.vfs or config.get('vfs', 'vfs/sample.json')
+        script_path = args.script if args.script is not None else config.get('script')
+        if not isinstance(vfs_path, str) or (script_path is not None and not isinstance(script_path, str)):
+            raise ValueError('config values must be strings')
+        print(f'Config: {args.config or "(none)"}')
+        print(f'VFS: {vfs_path}')
+        print(f'Startup script: {script_path or "(none)"}')
+        shell = Emulator()
+        if script_path and not run_script(shell, script_path):
+            return 1
+        while shell.running:
+            try:
+                line = input(shell.prompt())
+                output = shell.execute(line)
+                if output:
+                    print(output)
+            except EOFError:
+                break
+            except ShellError as error:
+                print(f'Error: {error}')
+        return 0
+    except (OSError, ValueError, json.JSONDecodeError) as error:
+        print(f'Configuration/VFS/script error: {error}', file=sys.stderr)
+        return 1
+
+
 if __name__ == '__main__':
     sys.exit(main())
