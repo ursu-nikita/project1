@@ -1,0 +1,2 @@
+chmod 999 readme.txt
+ls

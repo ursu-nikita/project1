@@ -130,6 +130,13 @@ class Emulator:
             except UnicodeDecodeError as error:
                 raise ShellError('tac only supports UTF-8 text') from error
             return '\n'.join(reversed(content.splitlines()))
+        if command == 'chmod':
+            self.require(params, 2, 'chmod <octal-mode> <path>')
+            mode, path = params
+            if len(mode) not in (3, 4) or any(ch not in '01234567' for ch in mode):
+                raise ShellError('chmod: mode must be 3 or 4 octal digits')
+            self.node(path)['mode'] = mode
+            return ''
         raise ShellError(f'Unknown command: {command}')
 
     @staticmethod

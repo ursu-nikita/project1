@@ -1,2 +1,4 @@
-unknown
+# The script must stop at the first error
 ls
+unknown_command
+whoami
