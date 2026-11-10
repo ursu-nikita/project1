@@ -1,0 +1,19 @@
+{
+  "name": "files",
+  "root": {
+    "type": "dir",
+    "mode": "755",
+    "children": {
+      "hello.txt": {
+        "type": "file",
+        "mode": "644",
+        "content_b64": "aGVsbG8Kd29ybGQK"
+      },
+      "notes.txt": {
+        "type": "file",
+        "mode": "644",
+        "content_b64": "b25lCnR3bwp0aHJlZQo="
+      }
+    }
+  }
+}

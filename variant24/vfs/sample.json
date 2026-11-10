@@ -1,0 +1,37 @@
+{
+  "name": "sample",
+  "root": {
+    "type": "dir",
+    "mode": "755",
+    "children": {
+      "readme.txt": {
+        "type": "file",
+        "mode": "644",
+        "content_b64": "bGluZSBvbmUKbGluZSB0d28KbGluZSB0aHJlZQo="
+      },
+      "home": {
+        "type": "dir",
+        "mode": "755",
+        "children": {
+          "student": {
+            "type": "dir",
+            "mode": "755",
+            "children": {
+              "docs": {
+                "type": "dir",
+                "mode": "755",
+                "children": {
+                  "data.txt": {
+                    "type": "file",
+                    "mode": "644",
+                    "content_b64": "Zmlyc3QKc2Vjb25kCnRoaXJkCg=="
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

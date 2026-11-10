@@ -15,12 +15,73 @@ class ShellError(Exception):
     """An invalid emulated command or virtual path."""
 
 
+def normalize(path, current):
+    """Normalize an absolute or relative virtual path without disk access."""
+    parts = [] if path.startswith('/') else current.strip('/').split('/')
+    for part in path.split('/'):
+        if part in ('', '.'):
+            continue
+        if part == '..':
+            if parts:
+                parts.pop()
+        else:
+            parts.append(part)
+    return '/' + '/'.join(p for p in parts if p)
+
+
+def load_vfs(path):
+    """Read and validate a JSON VFS containing directories and files."""
+    with open(path, 'rb') as stream:
+        raw = stream.read()
+    document = json.loads(raw.decode('utf-8'))
+    if not isinstance(document, dict) or not isinstance(document.get('name'), str):
+        raise ValueError('VFS must have a name')
+    root = document.get('root')
+    validate_node(root)
+    if root['type'] != 'dir':
+        raise ValueError('VFS root must be a directory')
+    return document, hashlib.sha256(raw).hexdigest()
+
+
+def validate_node(node):
+    """Recursively validate the VFS JSON schema."""
+    if not isinstance(node, dict) or node.get('type') not in ('dir', 'file'):
+        raise ValueError('invalid VFS node')
+    if not isinstance(node.get('mode', '755'), str):
+        raise ValueError('invalid VFS mode')
+    if node['type'] == 'dir':
+        children = node.get('children')
+        if not isinstance(children, dict):
+            raise ValueError('directory must contain children object')
+        for name, child in children.items():
+            if not name or '/' in name or name in ('.', '..'):
+                raise ValueError('invalid VFS entry name')
+            validate_node(child)
+    else:
+        encoded = node.get('content_b64')
+        if not isinstance(encoded, str):
+            raise ValueError('file must contain content_b64')
+        base64.b64decode(encoded, validate=True)
+
+
 class Emulator:
     """A simple shell operating exclusively on an in-memory JSON tree."""
 
-    def __init__(self):
+    def __init__(self, document, checksum):
+        self.document = document
+        self.checksum = checksum
         self.cwd = '/'
         self.running = True
+
+    def node(self, path):
+        """Find a node in the in-memory filesystem."""
+        absolute = normalize(path, self.cwd)
+        item = self.document['root']
+        for name in [part for part in absolute.split('/') if part]:
+            if item['type'] != 'dir' or name not in item['children']:
+                raise ShellError(f'No such file or directory: {path}')
+            item = item['children'][name]
+        return item
 
     def execute(self, line):
         """Execute one command and return output, or raise ShellError."""
@@ -35,6 +96,9 @@ class Emulator:
             self.require(params, 0, 'exit')
             self.running = False
             return ''
+        if command == 'vfs-info':
+            self.require(params, 0, 'vfs-info')
+            return f"Name: {self.document['name']}\nSHA-256: {self.checksum}"
         if command in ('ls', 'cd'):
             self.require_range(params, 0, 1, f'{command} [path]')
             return f'{command}: {params!r}'
@@ -98,7 +162,8 @@ def main(argv=None):
         print(f'Config: {args.config or "(none)"}')
         print(f'VFS: {vfs_path}')
         print(f'Startup script: {script_path or "(none)"}')
-        shell = Emulator()
+        doc, checksum = load_vfs(vfs_path)
+        shell = Emulator(doc, checksum)
         if script_path and not run_script(shell, script_path):
             return 1
         while shell.running:
