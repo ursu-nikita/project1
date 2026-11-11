@@ -2,20 +2,20 @@
 import argparse
 from settings import read_settings
 from repository import NuGetRepository
+from graph import TestRepository, build_graph
 
 
 def main():
-    """Print direct dependencies of the specified package version."""
+    """Build a graph from the configured repository."""
     parser = argparse.ArgumentParser()
     parser.add_argument("config", nargs="?", default="config.ini")
     args = parser.parse_args()
     try:
         settings = read_settings(args.config)
-        repo = NuGetRepository(settings.repository)
-        for name, requirement in repo.dependencies(
-            settings.package, settings.version
-        ):
-            print(f"{name} {requirement}")
+        factory = TestRepository if settings.test_mode else NuGetRepository
+        graph = build_graph(factory(settings.repository), settings)
+        for node, children in graph.edges.items():
+            print(f"{node}: {children}")
         return 0
     except Exception as error:
         print(f"Error: {error}")
