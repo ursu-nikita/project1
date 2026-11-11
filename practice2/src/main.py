@@ -3,6 +3,7 @@ import argparse
 from settings import read_settings
 from repository import NuGetRepository
 from graph import TestRepository, build_graph
+from order import loading_order
 
 
 def main():
@@ -16,6 +17,10 @@ def main():
         graph = build_graph(factory(settings.repository), settings)
         for node, children in graph.edges.items():
             print(f"{node}: {children}")
+        order, cycles = loading_order(graph)
+        print("Loading order:", " -> ".join(n[0] for n in order))
+        if cycles:
+            print("Cycle detected: no topological order exists", cycles)
         return 0
     except Exception as error:
         print(f"Error: {error}")
@@ -24,3 +29,4 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
