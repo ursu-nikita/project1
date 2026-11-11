@@ -4,6 +4,7 @@ from settings import read_settings
 from repository import NuGetRepository
 from graph import TestRepository, build_graph
 from order import loading_order
+from visualize import render
 
 
 def main():
@@ -21,6 +22,7 @@ def main():
         print("Loading order:", " -> ".join(n[0] for n in order))
         if cycles:
             print("Cycle detected: no topological order exists", cycles)
+        print("SVG:", render(graph, settings.output))
         return 0
     except Exception as error:
         print(f"Error: {error}")
@@ -29,4 +31,5 @@ def main():
 
 if __name__ == "__main__":
     raise SystemExit(main())
+
 
